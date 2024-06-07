@@ -118,7 +118,7 @@ if __name__ == '__main__':
     if args.number > 0:
         full_pids = full_pids[:min(args.number, len(full_pids))]
     print("Number of testing problems:", len(full_pids))
-
+    # print(len(full_pids))
     # test pids
     if args.rerun:
         test_pids = full_pids
@@ -140,7 +140,6 @@ if __name__ == '__main__':
         assert label in problem
         response = problem[label]       
 
-        
         extraction  = extract_answer(response, problem, args.quick_extract)
         results[pid]['extraction'] = extraction
 
