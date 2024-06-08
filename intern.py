@@ -23,7 +23,7 @@ for key in tqdm(data):
     entry = data[key]
 
     # Extract the relevant fields from each entry
-    query_cot = entry["question"]
+    query_cot = f'Question: {entry["question"]}'
     image_path = entry["image"]
     image = 'data/' + image_path
     
@@ -35,6 +35,8 @@ for key in tqdm(data):
     with torch.cuda.amp.autocast():
         response, _ = model.chat(tokenizer, query=query, image=image, history=[], do_sample=False)
 
+    # Add query CoT to the entry
+    entry["query"] = query_cot
     # Add the response to the entry
     entry["model_answer"] = response
     # cnt+= 1
