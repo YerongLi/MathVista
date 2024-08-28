@@ -29,8 +29,8 @@ def create_test_prompt(demo_prompt, query, response):
     demo_prompt = demo_prompt.strip()
     test_prompt = f"{query}\n\n{response}"
     full_prompt = f"{demo_prompt}\n\n{test_prompt}\n\nExtracted answer: "
-    print(full_prompt)
-    exit()
+    # print(full_prompt)
+    # exit()
     return full_prompt
 
 
@@ -127,13 +127,11 @@ if __name__ == '__main__':
     else:
         test_pids = []
         for pid in full_pids:
-            # print(pid)
-            # if 'extraction' not in results[pid] or not verify_extraction(results[pid]['extraction']):
+            if 'extraction' not in results[pid] or not verify_extraction(results[pid]['extraction']):
                 test_pids.append(pid)
     
     test_num = len(test_pids)
     print("Number of problems to run:", test_num)
-    # print(test_pids)
 
     # tqdm, enumerate results
     for i, pid in enumerate(tqdm(test_pids)):
