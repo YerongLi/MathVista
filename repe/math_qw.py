@@ -41,7 +41,11 @@ for entry in tqdm(dataset["testmini"]):
     query = f"<img>{image_path_prefix+entry['image']}</img>\n{entry['query']}?"
     
     # Run inference
-    response, history = inference(model, template, query)
+    try:
+        response, history = inference(model, template, query)
+    except torch.cuda.OutOfMemoryError:
+        print("CUDA out of memory. Skipping this iteration.")
+        continue
     # Store results
     pid = entry['pid']
     result_dict[pid] = {
