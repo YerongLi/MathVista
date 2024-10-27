@@ -15,7 +15,7 @@ import torch
 def main():
     parser = argparse.ArgumentParser(description='Process checkpoint path.')
     parser.add_argument('--checkpoint', type=str, required=True, help='Path to the checkpoint')
-    parser.add_argument('--ablation', action='store_true', help='Enable ablation mode')
+    parser.add_argument('--ablation', action='store_true', default=False, help='Enable ablation mode')
     ablation = args.ablation
     datasets_dir = os.getenv("DATASETS")
     image_path_prefix = f"{datasets_dir}/MathVista/"
