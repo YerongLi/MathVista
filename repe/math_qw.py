@@ -19,7 +19,7 @@ model, tokenizer = get_model_tokenizer(model_type, torch.float16,
                                        model_kwargs={'device_map': 'auto'})
 print(f'template_type: {template_type}')
 
-model.generation_config.max_new_tokens = 4096
+model.generation_config.max_new_tokens = 2048
 template = get_template(template_type, tokenizer)
 seed_everything(42)
 # for i in tqdm(range(len(dataset["testmini"]))):
@@ -28,6 +28,8 @@ seed_everything(42)
 result_dict = {}
 checkpoint = None
 save_prefix = f'../results/{str(model_type)}'
+if not os.path.exists(save_prefix):
+    os.makedirs(save_prefix)
 print(save_prefix)
 # exit(0)
 ablation = False
