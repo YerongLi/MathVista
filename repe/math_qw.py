@@ -61,6 +61,7 @@ def main():
     cnt = 0
     filename = f'{save_prefix}/{filename}' if checkpoint is None else 'original.json'
     for entry in tqdm(dataset["testmini"]):
+        print(cnt)
         if (cnt % 10 == 0): print(filename)
         cnt+= 1
         # Create query string
