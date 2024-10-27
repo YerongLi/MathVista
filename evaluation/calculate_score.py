@@ -1,17 +1,14 @@
-import argparse
-import json
-import logging
 import os
 import re
-
+import argparse
 import pandas as pd
-from datasets import load_dataset
 
+# !pip install python-Levenshtein
 from Levenshtein import distance
-from rich.logging import RichHandler
-from tqdm import tqdm
 
-from utilities import read_json, save_json
+import sys
+sys.path.append('../')
+from utilities import *
 
 
 def get_most_similar(prediction, choices):
@@ -24,9 +21,7 @@ def get_most_similar(prediction, choices):
     # return min(choices, key=lambda choice: distance(prediction, choice))
 
 
-def normalize_extracted_answer(
-    extraction, choices, question_type, answer_type, precision, ignore_empty_extractions=False
-):
+def normalize_extracted_answer(extraction, choices, question_type, answer_type, precision):
     """
     Normalize the extracted answer to match the answer type
     """
@@ -37,49 +32,45 @@ def normalize_extracted_answer(
         else:
             try:
                 extraction = str(extraction)
-            except Exception:
+            except:
                 extraction = ""
-
-        # if the extraction is empty, return None
-        if ignore_empty_extractions and not extraction:
-            return None
-
+    
         # extract "A" from "(A) text"
         letter = re.findall(r'\(([a-zA-Z])\)', extraction)
         if len(letter) > 0:
             extraction = letter[0].upper()
-
-        sequential_characters = [chr(ord('A') + i) for i in range(len(choices))]
-
-        # if model output a character, use it as index of available choices
-        if extraction in sequential_characters:
-            option_index = sequential_characters.index(extraction)
-            normalized_extraction = choices[option_index]
+        
+        options = [chr(ord('A') + i) for i in range(len(choices))]
+            
+        if extraction in options:
+            # convert option letter to text, e.g. "A" -> "text"
+            ind = options.index(extraction)
+            extraction = choices[ind]
         else:
             # select the most similar option
-            normalized_extraction = get_most_similar(extraction, choices)
-        assert normalized_extraction in choices
+            extraction = get_most_similar(extraction, choices)
+        assert extraction in choices
 
     elif answer_type == 'integer':
         try:
-            normalized_extraction = str(int(float(extraction)))
-        except Exception:
-            normalized_extraction = None
+            extraction = str(int(float(extraction)))
+        except:
+            extraction = None
 
     elif answer_type == 'float':
         try:
-            normalized_extraction = str(round(float(extraction), precision))
-        except Exception:
-            normalized_extraction = None
-
+            extraction = str(round(float(extraction), precision))
+        except:
+            extraction = None
+        
     elif answer_type == 'list':
         try:
-            normalized_extraction = str(extraction)
-        except Exception:
-            normalized_extraction = None
+            extraction = str(extraction)
+        except:
+            extraction = None
 
-    return normalized_extraction
-
+    return extraction
+    
 
 def safe_equal(prediction, answer):
     """
@@ -90,7 +81,7 @@ def safe_equal(prediction, answer):
             return True
         return False
     except Exception as e:
-        logging.info(e)
+        print(e)
         return False
 
 
@@ -102,59 +93,47 @@ def get_acc_with_contion(res_pd, key, value):
         total_pd = res_pd[res_pd[key] == value]
 
     correct_pd = total_pd[total_pd['true_false'] == True]
-    acc = len(correct_pd) / len(total_pd)
-
+    acc = "{:.2f}".format(len(correct_pd) / len(total_pd) * 100)
     return len(correct_pd), len(total_pd), acc
-
-
-def parse_args():
+        
+if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    # input
-    parser.add_argument('--dataset_name', type=str, default='AI4Math/MathVista')
-    parser.add_argument('--test_split_name', type=str, default='testmini')
-    parser.add_argument('--ground_truth_file_path', type=str, default='../data/testmini.json', help='ground truth file')
-    # options
-    parser.add_argument('--max_num_problems', type=int, default=-1, help='The maximum number of problems to run')
+    parser.add_argument('--output_dir', type=str, default='../results')
+    parser.add_argument('--output_file', type=str, default='output.json')
+    parser.add_argument('--score_file', type=str, default='scores.json')
+    parser.add_argument('--gt_file', type=str, default='../data/testmini.json', help='ground truth file')
+    parser.add_argument('--number', type=int, default=-1, help='number of problems to run')
     parser.add_argument('--rerun', action='store_true', help='rerun the evaluation')
     parser.add_argument('--caculate_gain', action='store_true', help='caculate the socre gains over random guess')
-    parser.add_argument(
-        '--ignore_empty_extractions', action='store_true', help='If true, ignore empty extractions, otherwise process'
-    )
-    parser.add_argument('--random_file', type=str, default='score_random_guess.json')
-    # output
-    parser.add_argument('--output_dir', type=str, default='_results/eval/mathvista/llava/debug')
-    parser.add_argument('--output_file', type=str, default="llava-v1.5-7b.json")
-    parser.add_argument('--score_file', type=str, default="llava-v1.5-7b_metrics.json")
+    parser.add_argument('--random_file', type=str, default='score_random_guess.json')  
     args = parser.parse_args()
-    return args
 
+    # args
+    output_file = os.path.join(args.output_dir, args.output_file)
 
-def main():
-    logging.info("MathVista: Calculating Scores - Start")
-    args = parse_args()
+    # # quick test
+    # output_file = '../results/llava-llama-2-13b/output_llava_llama_2_13b.json'
 
-    logging.info(f"Loading dataset {args.dataset_name}, split {args.test_split_name}...")
-    data_list = load_dataset(args.dataset_name, split=args.test_split_name)
-    # Convert Hugging Face data into dictionary to match local data format
-    # TODO: Convert scripts not to depend on dictionary .json format. Update to use .jsonl format
-    ground_truth_problems = {item['pid']: item for item in data_list}
+    # read json
+    print(f"Reading {output_file}...")
+    results = read_json(output_file)
 
-    output_file_path = os.path.join(args.output_dir, args.output_file)
+    # read ground truth
+    print(f"Reading {args.gt_file}...")
+    gts = read_json(args.gt_file)
 
-    logging.info(f"Reading {output_file_path}...")
-    results = read_json(output_file_path)
-
-    test_pids = list(results.keys())
-    if args.max_num_problems > 0:
-        test_pids = test_pids[: min(args.max_num_problems, len(test_pids))]
-        logging.warning(f'Limiting number of problems to {args.max_num_problems}.')
-
-    logging.info(f"Number of testing problems: {len(test_pids)}")
-
-    logging.info("For each problem normalize extractions and get True False value")
+    # full pids
+    full_pids = list(results.keys())
+    if args.number > 0:
+        full_pids = full_pids[:min(args.number, len(full_pids))]
+    print("Number of testing problems:", len(full_pids))
+    
+    ## [1] Evaluate if the prediction is true or false
+    print("\nEvaluating the predictions...")
     update_json_flag = False
-    for pid in tqdm(test_pids):
+    for pid in full_pids:
         problem = results[pid]
+        # print(problem)
 
         if args.rerun:
             if 'prediction' in problem:
@@ -171,22 +150,15 @@ def main():
         if 'answer' in problem:
             answer = problem['answer']
         else:
-            answer = ground_truth_problems[pid]['answer']
+            answer = gts[pid]['answer']
             problem['answer'] = answer
 
         # normalize the extracted answer to match the answer type
-        prediction = normalize_extracted_answer(
-            extraction,
-            choices,
-            question_type,
-            answer_type,
-            precision,
-            ignore_empty_extractions=args.ignore_empty_extractions,
-        )
+        prediction = normalize_extracted_answer(extraction, choices, question_type, answer_type, precision)
 
         # verify the prediction is true or false
         true_false = safe_equal(prediction, answer)
-
+        
         # update the problem
         if "true_false" not in problem:
             update_json_flag = True
@@ -197,162 +169,91 @@ def main():
         if "prediction" not in problem:
             update_json_flag = True
 
-        elif prediction != problem['prediction']:
+        elif prediction !=  problem['prediction']:
             update_json_flag = True
-
+            
         problem['prediction'] = prediction
         problem['true_false'] = true_false
 
     # save the updated json
     if update_json_flag:
-        logging.info("Updating input file with predictions and true_false...")
-        save_json(results, output_file_path)
-        logging.info(f"Saved {output_file_path}")
+        print("\n!!!Some problems are updated.!!!")
+        print(f"\nSaving {output_file}...")
+        save_json(results, output_file)
 
-    logging.info("Calculate the average accuracy")
-    total = len(test_pids)
+    ## [2] Calculate the average accuracy
+    total = len(full_pids)
     correct = 0
-    for pid in tqdm(test_pids):
+    for pid in full_pids:
         if results[pid]['true_false']:
             correct += 1
+    accuracy = str(round(correct / total * 100, 2))
+    print(f"\nCorrect: {correct}, Total: {total}, Accuracy: {accuracy}%")
 
-    accuracy = correct / total
     scores = {"average": {"accuracy": accuracy, "correct": correct, "total": total}}
-
-    # [3] Calculate the fine-grained accuracy scores
+    
+    ## [3] Calculate the fine-grained accuracy scores
+    
     # merge the 'metadata' attribute into the data
     for pid in results:
         results[pid].update(results[pid].pop('metadata'))
 
     # convert the data to a pandas DataFrame
-    results_df = pd.DataFrame(results).T
+    df = pd.DataFrame(results).T
+
+    print(len(df))
+    print("Number of test problems:", len(df))
+    # assert len(df) == 1000 # Important!!!
 
     # asign the target keys for evaluation
-    target_keys = [
-        'question_type',
-        'answer_type',
-        'language',
-        'source',
-        'category',
-        'task',
-        'context',
-        'grade',
-        'skills',
-    ]
-
+    target_keys = ['question_type', 'answer_type', 'language', 'source', 'category', 'task', 'context', 'grade', 'skills']
+     
     for key in target_keys:
+        print(f"\nType: [{key}]")
         # get the unique values of the key
         if key == 'skills':
             # the value is a list
             values = []
-            for i in range(len(results_df)):
-                values += results_df[key][i]
+            for i in range(len(df)):
+                values += df[key][i]
             values = list(set(values))
         else:
-            values = results_df[key].unique()
+            values = df[key].unique()
+        #print(values)
 
         # calculate the accuracy for each value
         scores[key] = {}
         for value in values:
-            correct, total, acc = get_acc_with_contion(results_df, key, value)
+            correct, total, acc = get_acc_with_contion(df, key, value)
             if total > 0:
+                print(f"[{value}]: {acc}% ({correct}/{total})")
                 scores[key][value] = {"accuracy": acc, "correct": correct, "total": total}
-
+        
         # sort the scores by accuracy
         scores[key] = dict(sorted(scores[key].items(), key=lambda item: float(item[1]['accuracy']), reverse=True))
+
+    # save the scores
+    scores_file = os.path.join(args.output_dir, args.score_file)
+    print(f"\nSaving {scores_file}...")
+    save_json(scores, scores_file)
+    print("\nDone!")
 
     # [4] Calculate the score gains over random guess
     if args.caculate_gain:
         random_file = os.path.join(args.output_dir, args.random_file)
         random_scores = json.load(open(random_file))
 
-        logging.info("Calculating the score gains...")
+        print("\nCalculating the score gains...")
         for key in scores:
             if key == 'average':
                 gain = round(float(scores[key]['accuracy']) - float(random_scores[key]['accuracy']), 2)
                 scores[key]['acc_gain'] = gain
             else:
                 for sub_key in scores[key]:
-                    gain = round(
-                        float(scores[key][sub_key]['accuracy']) - float(random_scores[key][sub_key]['accuracy']), 2
-                    )
+                    gain = round(float(scores[key][sub_key]['accuracy']) - float(random_scores[key][sub_key]['accuracy']), 2)
                     scores[key][sub_key]['acc_gain'] = str(gain)
 
-    metrics_str = get_full_metrics_str(scores)
-    logging.info(metrics_str)
-
-    scores_file_path = os.path.join(args.output_dir, args.score_file)
-    with open(scores_file_path, 'w') as f:
-        json.dump(scores, f, indent=4)
-
-    logging.info(f"Saved scores to: {scores_file_path}")
-    logging.info("MathVista: Calculating Scores - Finish")
-
-
-def get_full_metrics_str(metrics_dict) -> str:
-    divider = "=" * 40
-
-    avg_accuracy = metrics_dict["average"]["accuracy"]
-    avg_correct = metrics_dict["average"]["correct"]
-    avg_total = metrics_dict["average"]["total"]
-
-    metrics_str = f"""
-{f"Correct: {avg_correct}/{avg_total} - Accuracy: {avg_accuracy * 100:.2f}%"}
-{divider}
-""".lstrip()
-
-    for key, item in metrics_dict.items():
-        if key == "average":
-            continue
-
-        formatted_item_dict = {}
-        for sub_key, sub_item in item.items():
-            acc = sub_item["accuracy"]
-            correct = sub_item["correct"]
-            total = sub_item["total"]
-            values = [f"{acc * 100:.2f}%", f"({correct}/{total})"]
-
-            formatted_item_dict[sub_key] = values
-
-        category_df = pd.DataFrame(formatted_item_dict, index=["Accuracy", "Correct/Total"])
-
-        metrics_str += f"""
-{key}
-{divider}
-{category_df.T}
-"""
-
-    return metrics_str
-
-
-if __name__ == '__main__':
-    logging.basicConfig(
-        level=os.environ.get("LOGLEVEL", "INFO").upper(),
-        format="[%(name)s] %(message)s",
-        datefmt="[%X]",
-        handlers=[
-            RichHandler(
-                rich_tracebacks=True,
-                markup=False,
-                show_path=False,
-                omit_repeated_times=False,
-            )
-        ],
-    )
-    logger_blocklist = [
-        "asyncio",
-        "azure",
-        "azureml",
-        "datasets",
-        "httpx",
-        "filelock",
-        "fsspec",
-        "msal",
-        "msrest",
-        "PIL",
-        "urllib3",
-    ]
-    for module in logger_blocklist:
-        logging.getLogger(module).setLevel(logging.WARNING)
-
-    main()
+        # save the score gains
+        print(f"\nSaving {scores_file}...")    
+        save_json(scores, scores_file)
+        print("\nDone!")
