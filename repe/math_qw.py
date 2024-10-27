@@ -9,13 +9,14 @@ from swift.llm import (
 )
 from swift.utils import seed_everything
 import torch
-ablation = True
+
 
 # Set up the argument parser
 def main():
     parser = argparse.ArgumentParser(description='Process checkpoint path.')
     parser.add_argument('--checkpoint', type=str, required=True, help='Path to the checkpoint')
-
+    parser.add_argument('--ablation', action='store_true', help='Enable ablation mode')
+    ablation = args.ablation
     datasets_dir = os.getenv("DATASETS")
     image_path_prefix = f"{datasets_dir}/MathVista/"
     dataset = load_dataset("AI4Math/MathVista")
@@ -33,7 +34,7 @@ def main():
     threshold_length = 3  # You can adjust this value as needed
     if len(checkpoint_parts) < threshold_length:
         MODEL_TYPE = checkpoint_path.replace('-', '_')
-        filename = 'ablation.json' if ablation else 'original.json'
+        filename = 'ablation-short.json' if ablation else 'original.json'
     else:
         # Extract the model type
         MODEL_TYPE = checkpoint_parts[-3].replace('-', '_')
@@ -42,7 +43,12 @@ def main():
     model_type = getattr(ModelType, MODEL_TYPE)
     model, tokenizer = get_model_tokenizer(model_type, torch.float16,
                                            model_kwargs={'device_map': 'auto'})
-    
+
+    if len(checkpoint_parts) >= threshold_length:
+        from peft import PeftModel
+        model = PeftModel.from_pretrained(model, checkpoint_path)
+        model = model.merge_and_unload()
+        print(f" ==== Model merged successfully from checkpoint: {checkpoint_path}")
     template_type = get_default_template_type(model_type)
 
 
@@ -65,7 +71,7 @@ def main():
     cnt = 0
     filename = f'{save_prefix}/{filename}' if checkpoint is None else 'original.json'
     for entry in tqdm(dataset["testmini"]):
-        if not (cnt % 10): print(filename)
+        if not (cnt % 100): print(filename)
         cnt+= 1
         # Create query string
         query = f"<img>{image_path_prefix+entry['image']}</img>\n{entry['query']}?"
