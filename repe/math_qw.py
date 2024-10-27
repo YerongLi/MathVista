@@ -58,10 +58,11 @@ def main():
         os.makedirs(save_prefix)
     print(save_prefix)
     # exit(0)
-    cnt == 0
+    cnt = 0
     filename = f'{save_prefix}/{filename}' if checkpoint is None else 'original.json'
     for entry in tqdm(dataset["testmini"]):
         if not cnt & 10: print(filename)
+        cnt+= 1
         # Create query string
         query = f"<img>{image_path_prefix+entry['image']}</img>\n{entry['query']}?"
         
