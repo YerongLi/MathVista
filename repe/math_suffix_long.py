@@ -18,7 +18,7 @@ def main():
     parser.add_argument('--ablation', action='store_true', default=False, help='Enable ablation mode')
     args = parser.parse_args()
     
-    ablation = args.ablation
+    ablation = True
     datasets_dir = os.getenv("DATASETS")
     image_path_prefix = f"{datasets_dir}/MathVista/"
     dataset = load_dataset("AI4Math/MathVista")
