@@ -19,7 +19,7 @@ model, tokenizer = get_model_tokenizer(model_type, torch.float16,
                                        model_kwargs={'device_map': 'auto'})
 print(f'template_type: {template_type}')
 
-model.generation_config.max_new_tokens = 4096
+model.generation_config.max_new_tokens = 1024
 template = get_template(template_type, tokenizer)
 seed_everything(42)
 # for i in tqdm(range(len(dataset["testmini"]))):
