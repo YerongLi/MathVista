@@ -30,7 +30,7 @@ def main():
     checkpoint_parts = checkpoint_path.split('/')
     
     # Set a threshold for the length of the path
-    threshold_length = 5  # You can adjust this value as needed
+    threshold_length = 3  # You can adjust this value as needed
     if len(checkpoint_parts) < threshold_length:
         MODEL_TYPE = checkpoint_path
         filename = 'ablation.json' if ablation else 'original.json'
@@ -61,7 +61,7 @@ def main():
     cnt = 0
     filename = f'{save_prefix}/{filename}' if checkpoint is None else 'original.json'
     for entry in tqdm(dataset["testmini"]):
-        if not cnt & 10: print(filename)
+        if not cnt % 10: print(filename)
         cnt+= 1
         # Create query string
         query = f"<img>{image_path_prefix+entry['image']}</img>\n{entry['query']}?"
