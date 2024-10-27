@@ -35,7 +35,7 @@ def main():
     threshold_length = 3  # You can adjust this value as needed
     if len(checkpoint_parts) < threshold_length:
         MODEL_TYPE = checkpoint_path.replace('-', '_')
-        filename = 'ablation-short.json' if ablation else 'original.json'
+        filename = 'ablation-suffix.json' if ablation else 'original.json'
     else:
         # Extract the model type
         MODEL_TYPE = checkpoint_parts[-3].replace('-', '_')
@@ -56,7 +56,9 @@ def main():
     model.generation_config.max_new_tokens = 2048
     template = get_template(template_type, tokenizer)
     if ablation:
-        template.default_system = 'Extract key information from the image, solve the math problem, and provide a clear, accurate solution.'
+        pass
+        # template.default_system = 'As a precise assistant solving a vision math problem, extract key information from the image, solve the following math problem, and carefully reason through each step to provide a truthful and accurate solution.'
+    suffix = 'As a precise assistant solving a vision math problem, extract key information from the image, solve the following math problem, and carefully reason through each step to provide a truthful and accurate solution.'
     print(template.default_system)
     seed_everything(42)
     # for i in tqdm(range(len(dataset["testmini"]))):
@@ -75,7 +77,7 @@ def main():
         if not (cnt % 100): print(filename)
         cnt+= 1
         # Create query string
-        query = f"<img>{image_path_prefix+entry['image']}</img>\n{entry['query']}?"
+        query = f"<img>{image_path_prefix+entry['image']}</img>\n{entry['query']}?{suffix}"
         
         # Run inference
         try:
