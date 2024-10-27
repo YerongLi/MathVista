@@ -86,6 +86,7 @@ def main():
             "pid": entry["pid"],
             "metadata": entry["metadata"],
             "response": response,  # Use the inference response
+            'model': str(model_type)
         }
     
     # Write to file with proper formatting
