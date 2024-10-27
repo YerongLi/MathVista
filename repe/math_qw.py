@@ -32,7 +32,7 @@ def main():
     # Set a threshold for the length of the path
     threshold_length = 3  # You can adjust this value as needed
     if len(checkpoint_parts) < threshold_length:
-        MODEL_TYPE = checkpoint_path
+        MODEL_TYPE = checkpoint_path.replace('-', '_')
         filename = 'ablation.json' if ablation else 'original.json'
     else:
         # Extract the model type
