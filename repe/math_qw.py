@@ -49,8 +49,8 @@ def main():
     model.generation_config.max_new_tokens = 2048
     template = get_template(template_type, tokenizer)
     if ablation:
-        pass
-    print(template.default_sytem)
+        template.default_system = 'Extract key information from the image, solve the math problem, and provide a clear, accurate solution.'
+    print(template.default_system)
     exit(0)
     seed_everything(42)
     # for i in tqdm(range(len(dataset["testmini"]))):
