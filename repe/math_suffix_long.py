@@ -35,7 +35,7 @@ def main():
     threshold_length = 3  # You can adjust this value as needed
     if len(checkpoint_parts) < threshold_length:
         MODEL_TYPE = checkpoint_path.replace('-', '_')
-        filename = 'ablation-suffix.json' if ablation else 'original.json'
+        filename = 'ablation-suffix-long.json' if ablation else 'original.json'
     else:
         # Extract the model type
         MODEL_TYPE = checkpoint_parts[-3].replace('-', '_')
