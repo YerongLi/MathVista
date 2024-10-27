@@ -45,8 +45,13 @@ def main():
     
     template_type = get_default_template_type(model_type)
 
+
     model.generation_config.max_new_tokens = 2048
     template = get_template(template_type, tokenizer)
+    if ablation:
+        pass
+    print(template.default_sytem)
+    exit(0)
     seed_everything(42)
     # for i in tqdm(range(len(dataset["testmini"]))):
     #     query = f"<img>{image_path_prefix+dataset['testmini'][i]['image']}</img>\n{dataset['testmini'][i]['query']}?"
