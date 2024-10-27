@@ -51,7 +51,6 @@ def main():
     if ablation:
         template.default_system = 'Extract key information from the image, solve the math problem, and provide a clear, accurate solution.'
     print(template.default_system)
-    exit(0)
     seed_everything(42)
     # for i in tqdm(range(len(dataset["testmini"]))):
     #     query = f"<img>{image_path_prefix+dataset['testmini'][i]['image']}</img>\n{dataset['testmini'][i]['query']}?"
