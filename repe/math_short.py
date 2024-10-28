@@ -108,3 +108,5 @@ def main():
     print(f"Results successfully dumped to {filename}")
 if __name__ == '__main__':
     main()
+    # if ablation:
+    #     template.default_system = 'As a precise assistant solving a vision math problem, extract key information from the image, solve the following math problem, and carefully reason through each step to provide a truthful and accurate solution.'

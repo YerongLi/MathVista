@@ -9,19 +9,21 @@ from swift.llm import (
 )
 from swift.utils import seed_everything
 import torch
-ablation = True
+
 
 # Set up the argument parser
 def main():
     parser = argparse.ArgumentParser(description='Process checkpoint path.')
     parser.add_argument('--checkpoint', type=str, required=True, help='Path to the checkpoint')
-
+    parser.add_argument('--ablation', action='store_true', default=False, help='Enable ablation mode')
+    args = parser.parse_args()
+    
+    ablation = args.ablation
     datasets_dir = os.getenv("DATASETS")
     image_path_prefix = f"{datasets_dir}/MathVista/"
     dataset = load_dataset("AI4Math/MathVista")
     # /home/yerong2/representation-engineering/lorra_finetune/llavafine/output/internlm-xcomposer2-7b-chat/v130-20241026-015150/checkpoint-700
     # Parse the arguments
-    args = parser.parse_args()
 
     # Extract the checkpoint path
     checkpoint_path = args.checkpoint
@@ -33,7 +35,7 @@ def main():
     threshold_length = 3  # You can adjust this value as needed
     if len(checkpoint_parts) < threshold_length:
         MODEL_TYPE = checkpoint_path.replace('-', '_')
-        filename = 'ablation-long.json' if ablation else 'original.json'
+        filename = 'ablation-short.json' if ablation else 'original.json'
     else:
         # Extract the model type
         MODEL_TYPE = checkpoint_parts[-3].replace('-', '_')
